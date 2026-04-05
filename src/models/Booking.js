@@ -1,0 +1,51 @@
+const mongoose = require('mongoose');
+
+const bookingSchema = new mongoose.Schema(
+  {
+    listing: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Listing',
+      required: true,
+      index: true
+    },
+    renter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
+    },
+    startDate: {
+      type: Date,
+      required: true
+    },
+    endDate: {
+      type: Date,
+      required: true
+    },
+    totalPrice: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected', 'cancelled', 'completed'],
+      default: 'pending',
+      index: true
+    },
+    note: {
+      type: String,
+      maxlength: 500,
+      default: ''
+    }
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model('Booking', bookingSchema);
