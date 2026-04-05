@@ -18,10 +18,6 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, 'Invalid authentication token');
   }
 
-  if (!user.isEmailVerified) {
-    throw new ApiError(403, 'Email verification required');
-  }
-
   req.user = user;
   next();
 });

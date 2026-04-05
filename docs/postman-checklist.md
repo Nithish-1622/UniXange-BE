@@ -1,11 +1,9 @@
 # Postman Testing Checklist
 
 ## Authentication
-- Signup with valid college email -> expect OTP initiation.
+- Signup with valid college email -> expect account creation + token.
 - Signup with invalid domain email -> expect 403.
-- Verify OTP with wrong OTP -> expect 400.
-- Login before verification -> expect 403.
-- Login after verification -> expect JWT token.
+- Login with valid credentials -> expect JWT token.
 
 ## Authorization
 - Access protected routes without token -> expect 401.

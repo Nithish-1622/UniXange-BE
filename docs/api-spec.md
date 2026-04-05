@@ -4,8 +4,6 @@ Base URL: /api/v1
 
 ## Auth
 - POST /auth/signup
-- POST /auth/verify-otp
-- POST /auth/resend-otp
 - POST /auth/login
 - POST /auth/logout
 - GET /auth/me

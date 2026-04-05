@@ -15,7 +15,7 @@ Goals:
 
 - API Layer (Express Routes)
 - Controller Layer (request orchestration)
-- Service Layer (OTP generation, fraud heuristics, search helpers)
+- Service Layer (fraud heuristics, search helpers, pagination)
 - Data Layer (Mongoose models)
 - Middleware Layer (auth, validation, errors, role checks)
 
@@ -25,7 +25,7 @@ Goals:
 2. Validation middleware checks payload and query params.
 3. Auth middleware validates JWT when required.
 4. Controller executes business flow.
-5. Services are called for side workflows (OTP, fraud scoring, pagination).
+5. Services are called for side workflows (fraud scoring, pagination).
 6. Data persisted/fetched via Mongoose models.
 7. Standard JSON response returned.
 8. Errors are centralized in global error middleware.
@@ -50,7 +50,7 @@ Goals:
 
 ## 6. Future Extensions
 
-- Redis for OTP/session throttle.
+- Redis for caching/session throttling.
 - Socket.IO for realtime chat.
 - AI service integration for semantic search/fraud/lost-found match.
 - Object storage (S3/Azure Blob) for image uploads.

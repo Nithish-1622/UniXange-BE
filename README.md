@@ -9,7 +9,7 @@ Production-oriented backend for UniXchange campus marketplace.
 - MVC-like modular architecture
 
 ## Features Implemented
-- College-email-only authentication with OTP verification
+- College-email-only authentication
 - User profile and dashboard
 - Marketplace listings (buy/sell/rent) with filters and search
 - Rent booking workflow

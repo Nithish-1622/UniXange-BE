@@ -4,23 +4,18 @@ const ApiError = require('../utils/ApiError');
 const sendResponse = require('../utils/response');
 const env = require('../config/env');
 const { signToken } = require('../services/token.service');
-const { createOtpPayload, verifyOtp } = require('../services/otp.service');
-const { sendOtpEmail } = require('../services/email.service');
 
 const extractDomain = (email) => (email.split('@')[1] || '').toLowerCase();
 
 const assertAllowedDomain = (email) => {
-  const domain = extractDomain(email);
+  const normalizedEmail = String(email || '').toLowerCase().trim();
+  const requiredSuffix = env.collegeEmailSuffix || '@jainuniversity.ac.in';
 
-  if (!env.collegeEmailDomains.length) {
-    throw new ApiError(500, 'No college email domains configured');
+  if (!normalizedEmail.endsWith(requiredSuffix)) {
+    throw new ApiError(403, `Email must end with ${requiredSuffix}`);
   }
 
-  if (!env.collegeEmailDomains.includes(domain)) {
-    throw new ApiError(403, 'Only verified college email domains are allowed');
-  }
-
-  return domain;
+  return extractDomain(normalizedEmail);
 };
 
 const signup = asyncHandler(async (req, res) => {
@@ -28,68 +23,23 @@ const signup = asyncHandler(async (req, res) => {
   const normalizedEmail = email.toLowerCase();
   const collegeDomain = assertAllowedDomain(normalizedEmail);
 
-  const otpPayload = createOtpPayload();
-
-  let user = await User.findOne({ email: normalizedEmail }).select('+otpHash +otpExpiresAt +password');
-
-  if (user?.isEmailVerified) {
+  const existingUser = await User.findOne({ email: normalizedEmail });
+  if (existingUser) {
     throw new ApiError(409, 'Email already registered');
   }
 
-  if (user) {
-    user.fullName = fullName;
-    user.password = password;
-    user.campusArea = campusArea || user.campusArea;
-    user.collegeDomain = collegeDomain;
-    user.otpHash = otpPayload.otpHash;
-    user.otpExpiresAt = otpPayload.otpExpiresAt;
-    user.isEmailVerified = false;
-  } else {
-    user = new User({
-      fullName,
-      email: normalizedEmail,
-      password,
-      campusArea: campusArea || '',
-      collegeDomain,
-      otpHash: otpPayload.otpHash,
-      otpExpiresAt: otpPayload.otpExpiresAt,
-      isEmailVerified: false
-    });
-  }
-
-  await user.save();
-  await sendOtpEmail({ email: normalizedEmail, otp: otpPayload.otp });
-
-  return sendResponse(res, 201, 'Signup initiated. Verify OTP sent to email.', {
-    email: normalizedEmail
+  const user = await User.create({
+    fullName,
+    email: normalizedEmail,
+    password,
+    campusArea: campusArea || '',
+    collegeDomain,
+    isEmailVerified: true
   });
-});
-
-const verifySignupOtp = asyncHandler(async (req, res) => {
-  const { email, otp } = req.body;
-  const normalizedEmail = email.toLowerCase();
-
-  const user = await User.findOne({ email: normalizedEmail }).select('+otpHash +otpExpiresAt');
-  if (!user) throw new ApiError(404, 'User not found');
-
-  const isValid = verifyOtp({
-    plainOtp: otp,
-    hashedOtp: user.otpHash,
-    expiresAt: user.otpExpiresAt
-  });
-
-  if (!isValid) {
-    throw new ApiError(400, 'Invalid or expired OTP');
-  }
-
-  user.isEmailVerified = true;
-  user.otpHash = undefined;
-  user.otpExpiresAt = undefined;
-  await user.save();
 
   const token = signToken({ userId: user._id, role: user.role });
 
-  return sendResponse(res, 200, 'Email verified successfully', {
+  return sendResponse(res, 201, 'Signup successful', {
     token,
     user: {
       id: user._id,
@@ -99,28 +49,6 @@ const verifySignupOtp = asyncHandler(async (req, res) => {
       isEmailVerified: user.isEmailVerified
     }
   });
-});
-
-const resendOtp = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-  const normalizedEmail = email.toLowerCase();
-  assertAllowedDomain(normalizedEmail);
-
-  const user = await User.findOne({ email: normalizedEmail }).select('+otpHash +otpExpiresAt');
-  if (!user) throw new ApiError(404, 'User not found');
-
-  if (user.isEmailVerified) {
-    throw new ApiError(400, 'Email is already verified');
-  }
-
-  const otpPayload = createOtpPayload();
-  user.otpHash = otpPayload.otpHash;
-  user.otpExpiresAt = otpPayload.otpExpiresAt;
-  await user.save();
-
-  await sendOtpEmail({ email: normalizedEmail, otp: otpPayload.otp });
-
-  return sendResponse(res, 200, 'OTP resent successfully');
 });
 
 const login = asyncHandler(async (req, res) => {
@@ -134,10 +62,6 @@ const login = asyncHandler(async (req, res) => {
 
   const passwordMatches = await user.comparePassword(password);
   if (!passwordMatches) throw new ApiError(401, 'Invalid email or password');
-
-  if (!user.isEmailVerified) {
-    throw new ApiError(403, 'Email not verified');
-  }
 
   const token = signToken({ userId: user._id, role: user.role });
 
@@ -163,8 +87,6 @@ const me = asyncHandler(async (req, res) => {
 
 module.exports = {
   signup,
-  verifySignupOtp,
-  resendOtp,
   login,
   logout,
   me
